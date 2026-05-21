@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Golf Picks &mdash; THE CJ CUP Byron Nelson</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green:   #22a861; --blue: #3b7dd8; --amber: #f0a500; --red: #c94040;
+    --bg:      #0e1117; --surface: #181d27; --card: #1e2433;
+    --border:  rgba(255,255,255,0.07); --text: #e8eaf0;
+    --muted:   #7a8299; --accent: #3b7dd8;
+  }
+  body { font-family:'Barlow',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; font-size:14px; }
+  .header { background:var(--surface); border-bottom:1px solid var(--border); padding:2rem 2.5rem 1.5rem; }
+  .header-top { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:1rem; }
+  .event-name { font-family:'Barlow Condensed',sans-serif; font-size:2rem; font-weight:700; letter-spacing:0.02em; color:#fff; }
+  .venue { font-size:0.95rem; color:var(--muted); margin-top:0.3rem; }
+  .generated { font-size:0.8rem; color:var(--muted); text-align:right; }
+  .meta-bar { display:flex; flex-wrap:wrap; gap:1rem; margin-top:1.25rem; }
+  .meta-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:0.6rem 1rem; font-size:0.82rem; }
+  .meta-card .meta-label { color:var(--muted); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:2px; }
+  .meta-card .meta-val { font-weight:600; color:var(--text); }
+  .wx-badge { display:inline-block; padding:3px 10px; border-radius:4px; font-size:0.78rem; font-weight:600; letter-spacing:0.06em; }
+  .wx-badge.wind { background:rgba(240,165,0,0.18); color:#f0a500; border:1px solid rgba(240,165,0,0.3); }
+  .wx-badge.wet  { background:rgba(59,125,216,0.18); color:#7bb3f5; border:1px solid rgba(59,125,216,0.3); }
+  .wx-badge.calm { background:rgba(34,168,97,0.15);  color:#22a861; border:1px solid rgba(34,168,97,0.3); }
+  .weights-bar { display:flex; flex-wrap:wrap; gap:6px; padding:1rem 2.5rem; background:var(--bg); border-bottom:1px solid var(--border); }
+  .wt-pill { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:3px 10px; font-size:0.75rem; color:var(--muted); }
+  .wt-pill b { color:var(--text); }
+  .filter-bar { display:flex; gap:8px; padding:0.75rem 2.5rem; background:var(--surface); border-bottom:1px solid var(--border); align-items:center; flex-wrap:wrap; }
+  .filter-label { font-size:0.78rem; color:var(--muted); margin-right:4px; }
+  .filter-btn { background:transparent; border:1px solid var(--border); border-radius:4px; color:var(--muted); padding:4px 14px; font-size:0.8rem; cursor:pointer; font-family:'Barlow',sans-serif; transition:all 0.15s; }
+  .filter-btn:hover, .filter-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .table-wrap { padding:1.5rem 2.5rem 3rem; overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; min-width:1100px; }
+  thead th { font-family:'Barlow Condensed',sans-serif; font-size:0.72rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); padding:0.5rem 0.75rem; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; cursor:pointer; user-select:none; }
+  thead th:hover { color:var(--text); }
+  thead th .sort-arrow { opacity:0.4; margin-left:4px; font-size:0.65rem; }
+  thead th.sorted .sort-arrow { opacity:1; color:var(--accent); }
+  tbody tr { border-bottom:1px solid var(--border); transition:background 0.1s; }
+  tbody tr:hover { background:var(--card); }
+  tbody tr.hidden { display:none; }
+  td { padding:0.65rem 0.75rem; vertical-align:middle; white-space:nowrap; font-size:0.85rem; }
+  .rank-cell { font-family:'Barlow Condensed',sans-serif; font-size:1.1rem; font-weight:700; color:var(--muted); width:36px; }
+  .name-cell { min-width:160px; }
+  .player-name { font-weight:600; font-size:0.92rem; color:#fff; margin-bottom:3px; }
+  .score-cell { min-width:90px; }
+  .score-num { font-family:'Barlow Condensed',sans-serif; font-size:1.4rem; font-weight:700; color:#fff; line-height:1; }
+  .tier-badge { display:inline-block; font-size:0.65rem; font-weight:700; letter-spacing:0.08em; padding:2px 7px; border-radius:3px; text-transform:uppercase; }
+  .tier-badge.strong { background:rgba(34,168,97,0.2);  color:#22a861; border:1px solid rgba(34,168,97,0.4); }
+  .tier-badge.solid  { background:rgba(59,125,216,0.2); color:#7bb3f5; border:1px solid rgba(59,125,216,0.4); }
+  .tier-badge.watch  { background:rgba(240,165,0,0.18); color:#f0a500; border:1px solid rgba(240,165,0,0.35); }
+  .tier-badge.fade   { background:rgba(201,64,64,0.15); color:#e07070; border:1px solid rgba(201,64,64,0.3); }
+  .bar-wrap { height:3px; background:rgba(255,255,255,0.08); border-radius:2px; margin-top:4px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:2px; transition:width 0.6s ease; }
+  .pos { color:#22a861; } .neg { color:#e07070; } .na { color:var(--muted); } .muted { color:var(--muted); }
+  .dq-label { font-size:0.78rem; font-weight:600; }
+  .recent-cell { min-width:120px; font-size:0.78rem; }
+  .summary-cell { min-width:260px; max-width:320px; white-space:normal; font-size:0.78rem; color:var(--muted); line-height:1.4; }
+  .detail-cell { min-width:200px; }
+  .radar { padding:4px 0; }
+  .radar-row { display:flex; align-items:center; gap:6px; margin-bottom:3px; }
+  .radar-label { font-size:0.65rem; color:var(--muted); width:52px; flex-shrink:0; text-transform:uppercase; letter-spacing:0.04em; }
+  .radar-bar-wrap { flex:1; height:4px; background:rgba(255,255,255,0.07); border-radius:2px; overflow:hidden; }
+  .radar-bar-fill { height:100%; background:var(--accent); border-radius:2px; }
+  .radar-val { font-size:0.65rem; color:var(--muted); width:22px; text-align:right; }
+  .legend { display:flex; flex-wrap:wrap; gap:1.5rem; padding:1.25rem 2.5rem; background:var(--surface); border-top:1px solid var(--border); font-size:0.78rem; color:var(--muted); }
+  .legend-item { display:flex; align-items:center; gap:6px; }
+  .legend-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  th[data-tip] { position:relative; }
+  th[data-tip]:hover::after { content:attr(data-tip); position:absolute; top:100%; left:0; background:#2a3045; border:1px solid var(--border); border-radius:4px; padding:5px 9px; font-size:0.72rem; font-weight:400; color:var(--text); white-space:nowrap; z-index:100; pointer-events:none; text-transform:none; letter-spacing:0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="event-name">THE CJ CUP Byron Nelson</div>
+      <div class="venue"> &nbsp;|&nbsp; Parkland &nbsp;|&nbsp; Bermuda greens &nbsp;|&nbsp; Moderate fairways &nbsp;|&nbsp; Long layout</div>
+    </div>
+    <div class="generated">Generated May 21, 2026  06:08<br><span class="wx-badge calm">CALM &nbsp;7 mph wind</span></div>
+  </div>
+  <div class="meta-bar">
+    <div class="meta-card"><div class="meta-label">Field size</div><div class="meta-val">147 players</div></div>
+    <div class="meta-card"><div class="meta-label">Top pick</div><div class="meta-val">Scottie Scheffler</div></div>
+    <div class="meta-card"><div class="meta-label">STRONG picks</div><div class="meta-val">1</div></div>
+    <div class="meta-card"><div class="meta-label">SOLID picks</div><div class="meta-val">11</div></div>
+    <div class="meta-card"><div class="meta-label">FADE count</div><div class="meta-val">0</div></div>
+    <div class="meta-card"><div class="meta-label">Wind</div><div class="meta-val">7.0 mph avg</div></div>
+  </div>
+</div>
+<div class="weights-bar">
+  <span style="font-size:0.72rem;color:var(--muted);align-self:center;margin-right:4px;">WEIGHTS</span>
+  <span class="wt-pill">World Ranking <b>12%</b></span><span class="wt-pill">Recent Form <b>20%</b></span><span class="wt-pill">Sg Total <b>10%</b></span><span class="wt-pill">Sg Approach <b>7%</b></span><span class="wt-pill">Sg Putting <b>7%</b></span><span class="wt-pill">Birdie Rate <b>7%</b></span><span class="wt-pill">Bogey Avoidance <b>8%</b></span><span class="wt-pill">Scrambling <b>4%</b></span><span class="wt-pill">Gir <b>4%</b></span><span class="wt-pill">Driving Acc <b>4%</b></span><span class="wt-pill">Weekend Scoring <b>6%</b></span><span class="wt-pill">Course History <b>11%</b></span>
+</div>
+<div class="filter-bar">
+  <span class="filter-label">SHOW:</span>
+  <button class="filter-btn active" onclick="filterTier('all',this)">All</button>
+  <button class="filter-btn" onclick="filterTier('strong',this)">STRONG only</button>
+  <button class="filter-btn" onclick="filterTier('solid',this)">SOLID+</button>
+  <button class="filter-btn" onclick="filterTier('watch',this)">WATCH+</button>
+  <button class="filter-btn" onclick="filterTier('fade',this)">FADE only</button>
+</div>
+<div class="table-wrap">
+<table id="main-table">
+  <thead>
+    <tr>
+      <th data-col="rank">#</th>
+      <th data-col="name">Player</th>
+      <th data-col="composite" class="sorted" data-tip="Composite score 0-100. Higher = stronger pick.">Score <span class="sort-arrow">&#9660;</span></th>
+      <th data-col="owgr"         data-tip="Official World Golf Ranking (lower = better)">OWGR <span class="sort-arrow"></span></th>
+      <th data-col="sg_total"     data-tip="Strokes Gained: Total vs field (season)">SG Tot <span class="sort-arrow"></span></th>
+      <th data-col="sg_approach"  data-tip="Strokes Gained: Approach shots">SG App <span class="sort-arrow"></span></th>
+      <th data-col="sg_putting"   data-tip="Strokes Gained: Putting">SG Putt <span class="sort-arrow"></span></th>
+      <th data-col="birdie_avg"   data-tip="Birdies per round (season avg)">Birdies <span class="sort-arrow"></span></th>
+      <th data-col="bogey_avg"    data-tip="Bogeys per round (season avg, lower=better)">Bogeys <span class="sort-arrow"></span></th>
+      <th data-col="gir_pct"      data-tip="Greens in Regulation % (season)">GIR% <span class="sort-arrow"></span></th>
+      <th data-col="scrambling"   data-tip="Scrambling % -- getting up-and-down from trouble">Scramble <span class="sort-arrow"></span></th>
+      <th data-col="driving_dist" data-tip="Driving distance (yards)">Dist <span class="sort-arrow"></span></th>
+      <th data-col="driving_acc"  data-tip="Driving accuracy %">DrAcc <span class="sort-arrow"></span></th>
+      <th data-col="course_hist"  data-tip="Avg finish at this event over past 5 years (lower=better). Hover for year-by-year.">C.Hist <span class="sort-arrow"></span></th>
+      <th data-col="recent"       data-tip="Recent event finish positions (last 5 events, left=most recent)">Recent <span class="sort-arrow"></span></th>
+      <th data-col="data_quality" data-tip="Stats found out of 8 key fields. Higher = more reliable score.">Data <span class="sort-arrow"></span></th>
+      <th>Why</th>
+      <th>Breakdown</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+        <tr class="player-row" data-tier="strong">
+          <td class="rank-cell">1</td>
+          <td class="name-cell">
+            <div class="player-name">Scottie Scheffler</div>
+            <span class="tier-badge strong">STRONG</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">81.3</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:81.3%;background:#22a861"></div></div>
+          </td>
+          <td>1</td>
+          <td><span class="pos">+1.62</span></td>
+          <td><span class="pos">+0.57</span></td>
+          <td><span class="pos">+0.41</span></td>
+          <td>5.9</td>
+          <td>2.3</td>
+          <td>71.8</td>
+          <td>68.0</td>
+          <td>313</td>
+          <td>63.2</td>
+          <td><span style="color:#22a861;cursor:help" title="2025: T1  2023: T5  2022: T15  2021: T47">17</span></td>
+          <td class="recent-cell"><span style="color:#7bb3f5">T14</span> <span class="pos">T2</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">8/8</div>
+          </td>
+          <td class="summary-cell">Scheffler stands out: ranked #1 in the world, averaging a top-10 finish over his last 2 events, gaining +1.62 strokes/round on the field this season.</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:100%"></div></div><span class="radar-val">100</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:91%"></div></div><span class="radar-val">91</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:89%"></div></div><span class="radar-val">89</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:100%"></div></div><span class="radar-val">100</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:78%"></div></div><span class="radar-val">78</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:100%"></div></div><span class="radar-val">100</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:0%"></div></div><span class="radar-val">0</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:78%"></div></div><span class="radar-val">78</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="solid">
+          <td class="rank-cell">2</td>
+          <td class="name-cell">
+            <div class="player-name">Kevin Roy</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">70.2</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:70.2%;background:#3b7dd8"></div></div>
+          </td>
+          <td>125</td>
+          <td><span class="pos">+0.14</span></td>
+          <td><span class="pos">+0.05</span></td>
+          <td><span class="pos">+0.49</span></td>
+          <td>2.8</td>
+          <td>0.6</td>
+          <td>63.2</td>
+          <td>65.3</td>
+          <td>304</td>
+          <td>57.8</td>
+          <td><span style="color:#22a861;cursor:help" title="2025: T15">15</span></td>
+          <td class="recent-cell"><span class="pos">T3</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">8/8</div>
+          </td>
+          <td class="summary-cell">Roy stands out: averaging a top-5 finish over his last 1 events, excellent course history (avg finish 15 here), hot putter (+0.49 SG putting).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:42%"></div></div><span class="radar-val">42</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:98%"></div></div><span class="radar-val">98</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:66%"></div></div><span class="radar-val">66</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:59%"></div></div><span class="radar-val">59</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:81%"></div></div><span class="radar-val">81</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:29%"></div></div><span class="radar-val">29</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:97%"></div></div><span class="radar-val">97</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:81%"></div></div><span class="radar-val">81</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="solid">
+          <td class="rank-cell">3</td>
+          <td class="name-cell">
+            <div class="player-name">Si Woo Kim</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">68.5</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:68.5%;background:#3b7dd8"></div></div>
+          </td>
+          <td>24</td>
+          <td><span class="pos">+1.43</span></td>
+          <td><span class="pos">+0.50</span></td>
+          <td><span class="neg">-0.30</span></td>
+          <td>3.7</td>
+          <td>1.1</td>
+          <td>69.0</td>
+          <td>63.1</td>
+          <td>300</td>
+          <td>69.6</td>
+          <td><span style="color:#f0a500;cursor:help" title="2025: T15  2024: T13  2023: T2  2021: T55">21</span></td>
+          <td class="recent-cell"><span class="muted">T35</span> <span class="muted">T65</span> <span class="pos">T4</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">8/8</div>
+          </td>
+          <td class="summary-cell">Kim stands out: top-25 world ranking (#24), positive strokes gained (+1.43) on tour this year, good course history (avg finish 21).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:75%"></div></div><span class="radar-val">75</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:54%"></div></div><span class="radar-val">54</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:88%"></div></div><span class="radar-val">88</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:94%"></div></div><span class="radar-val">94</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:47%"></div></div><span class="radar-val">47</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:65%"></div></div><span class="radar-val">65</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:73%"></div></div><span class="radar-val">73</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="solid">
+          <td class="rank-cell">4</td>
+          <td class="name-cell">
+            <div class="player-name">Beau Hossler</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">68.3</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:68.3%;background:#3b7dd8"></div></div>
+          </td>
+          <td>148</td>
+          <td><span class="pos">+0.19</span></td>
+          <td><span class="pos">+0.07</span></td>
+          <td><span class="pos">+0.73</span></td>
+          <td>2.9</td>
+          <td>0.5</td>
+          <td>64.6</td>
+          <td>68.1</td>
+          <td>299</td>
+          <td>56.8</td>
+          <td><span style="color:#e07070;cursor:help" title="2025: T65  2024: T52  2022: T17">45</span></td>
+          <td class="recent-cell"><span class="pos">T3</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">8/8</div>
+          </td>
+          <td class="summary-cell">Hossler stands out: averaging a top-5 finish over his last 1 events, hot putter (+0.73 SG putting).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:42%"></div></div><span class="radar-val">42</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:98%"></div></div><span class="radar-val">98</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:70%"></div></div><span class="radar-val">70</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:60%"></div></div><span class="radar-val">60</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:92%"></div></div><span class="radar-val">92</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:31%"></div></div><span class="radar-val">31</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:99%"></div></div><span class="radar-val">99</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:42%"></div></div><span class="radar-val">42</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="solid">
+          <td class="rank-cell">5</td>
+          <td class="name-cell">
+            <div class="player-name">Jordan Spieth</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">67.2</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:67.2%;background:#3b7dd8"></div></div>
+          </td>
+          <td>47</td>
+          <td><span class="pos">+0.35</span></td>
+          <td><span class="pos">+0.12</span></td>
+          <td><span class="pos">+0.25</span></td>
+          <td>2.6</td>
+          <td>0.7</td>
+          <td>66.4</td>
+          <td>64.9</td>
+          <td>311</td>
+          <td>58.2</td>
+          <td><span style="color:#22a861;cursor:help" title="2025: T4  2022: T2  2021: T9">5</span></td>
+          <td class="recent-cell"><span class="muted">T18</span> <span class="muted">T52</span> <span class="muted">T18</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">8/8</div>
+          </td>
+          <td class="summary-cell">Spieth stands out: solid recent form (avg finish ~29 over last 3 events), excellent course history (avg finish 5 here), big hitter (311 yds) suits this long course.</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:68%"></div></div><span class="radar-val">68</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:61%"></div></div><span class="radar-val">61</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:68%"></div></div><span class="radar-val">68</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:65%"></div></div><span class="radar-val">65</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:71%"></div></div><span class="radar-val">71</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:25%"></div></div><span class="radar-val">25</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:90%"></div></div><span class="radar-val">90</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:94%"></div></div><span class="radar-val">94</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="solid">
+          <td class="rank-cell">6</td>
+          <td class="name-cell">
+            <div class="player-name">Christiaan Bezuidenhout</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">66.7</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:66.7%;background:#3b7dd8"></div></div>
+          </td>
+          <td>88</td>
+          <td><span class="pos">+0.11</span></td>
+          <td><span class="pos">+0.04</span></td>
+          <td><span class="pos">+0.67</span></td>
+          <td>2.9</td>
+          <td>0.7</td>
+          <td>64.7</td>
+          <td>65.0</td>
+          <td>290</td>
+          <td>58.9</td>
+          <td><span style="color:#22a861;cursor:help" title="2023: T23  2022: T12">18</span></td>
+          <td class="recent-cell"><span class="muted">T35</span> <span style="color:#7bb3f5">T6</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">8/8</div>
+          </td>
+          <td class="summary-cell">Bezuidenhout stands out: solid recent form (avg finish ~20 over last 2 events), good course history (avg finish 18), hot putter (+0.67 SG putting).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:52%"></div></div><span class="radar-val">52</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:73%"></div></div><span class="radar-val">73</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:67%"></div></div><span class="radar-val">67</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:58%"></div></div><span class="radar-val">58</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:89%"></div></div><span class="radar-val">89</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:31%"></div></div><span class="radar-val">31</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:89%"></div></div><span class="radar-val">89</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:78%"></div></div><span class="radar-val">78</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="solid">
+          <td class="rank-cell">7</td>
+          <td class="name-cell">
+            <div class="player-name">Eric Cole</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">66.3</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:66.3%;background:#3b7dd8"></div></div>
+          </td>
+          <td>118</td>
+          <td><span class="neg">-0.15</span></td>
+          <td><span class="neg">-0.05</span></td>
+          <td><span class="pos">+0.49</span></td>
+          <td>2.6</td>
+          <td>0.5</td>
+          <td>62.4</td>
+          <td>64.8</td>
+          <td>298</td>
+          <td>48.8</td>
+          <td><span style="color:#22a861;cursor:help" title="2025: T5  2023: T23">14</span></td>
+          <td class="recent-cell"><span style="color:#7bb3f5">T6</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">8/8</div>
+          </td>
+          <td class="summary-cell">Cole stands out: averaging a top-8 finish over his last 1 events, excellent course history (avg finish 14 here), hot putter (+0.49 SG putting).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:42%"></div></div><span class="radar-val">42</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:94%"></div></div><span class="radar-val">94</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:59%"></div></div><span class="radar-val">59</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:51%"></div></div><span class="radar-val">51</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:81%"></div></div><span class="radar-val">81</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:25%"></div></div><span class="radar-val">25</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:100%"></div></div><span class="radar-val">100</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:82%"></div></div><span class="radar-val">82</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="solid">
+          <td class="rank-cell">8</td>
+          <td class="name-cell">
+            <div class="player-name">Tom Kim</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">65.3</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:65.3%;background:#3b7dd8"></div></div>
+          </td>
+          <td>141</td>
+          <td><span class="pos">+0.40</span></td>
+          <td><span class="pos">+0.14</span></td>
+          <td><span class="neg">-0.17</span></td>
+          <td>3.4</td>
+          <td>1.1</td>
+          <td>68.0</td>
+          <td>64.8</td>
+          <td>301</td>
+          <td>62.6</td>
+          <td><span style="color:#f0a500;cursor:help" title="2024: T52  2023: T34  2022: T17">34</span></td>
+          <td class="recent-cell"><span style="color:#7bb3f5">T6</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">8/8</div>
+          </td>
+          <td class="summary-cell">Kim stands out: averaging a top-8 finish over his last 1 events.</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:42%"></div></div><span class="radar-val">42</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:94%"></div></div><span class="radar-val">94</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:65%"></div></div><span class="radar-val">65</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:66%"></div></div><span class="radar-val">66</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:53%"></div></div><span class="radar-val">53</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:43%"></div></div><span class="radar-val">43</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:65%"></div></div><span class="radar-val">65</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:56%"></div></div><span class="radar-val">56</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="solid">
+          <td class="rank-cell">9</td>
+          <td class="name-cell">
+            <div class="player-name">Zecheng Dou</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">64.7</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:64.7%;background:#3b7dd8"></div></div>
+          </td>
+          <td>180</td>
+          <td><span class="pos">+0.44</span></td>
+          <td><span class="pos">+0.15</span></td>
+          <td><span class="pos">+0.01</span></td>
+          <td>4.0</td>
+          <td><span class="na">--</span></td>
+          <td>67.7</td>
+          <td>63.8</td>
+          <td>309</td>
+          <td>49.6</td>
+          <td><span style="color:#22a861;cursor:help" title="2023: T5">5</span></td>
+          <td class="recent-cell"><span style="color:#7bb3f5">T13</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">7/8</div>
+          </td>
+          <td class="summary-cell">Dou stands out: averaging a top-15 finish over his last 1 events, excellent course history (avg finish 5 here).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:33%"></div></div><span class="radar-val">33</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:84%"></div></div><span class="radar-val">84</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:68%"></div></div><span class="radar-val">68</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:67%"></div></div><span class="radar-val">67</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:61%"></div></div><span class="radar-val">61</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:56%"></div></div><span class="radar-val">56</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:94%"></div></div><span class="radar-val">94</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="solid">
+          <td class="rank-cell">10</td>
+          <td class="name-cell">
+            <div class="player-name">Austin Eckroat</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">62.5</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:62.5%;background:#3b7dd8"></div></div>
+          </td>
+          <td>166</td>
+          <td><span class="pos">+0.37</span></td>
+          <td><span class="pos">+0.13</span></td>
+          <td><span class="neg">-0.20</span></td>
+          <td>4.1</td>
+          <td><span class="na">--</span></td>
+          <td>66.2</td>
+          <td>60.7</td>
+          <td>300</td>
+          <td>57.5</td>
+          <td><span style="color:#22a861;cursor:help" title="2023: T2">2</span></td>
+          <td class="recent-cell"><span class="muted">T19</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">7/8</div>
+          </td>
+          <td class="summary-cell">Eckroat stands out: solid recent form (avg finish ~19 over last 1 events), excellent course history (avg finish 2 here).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:33%"></div></div><span class="radar-val">33</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:76%"></div></div><span class="radar-val">76</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:63%"></div></div><span class="radar-val">63</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:65%"></div></div><span class="radar-val">65</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:51%"></div></div><span class="radar-val">51</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:59%"></div></div><span class="radar-val">59</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:98%"></div></div><span class="radar-val">98</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="solid">
+          <td class="rank-cell">11</td>
+          <td class="name-cell">
+            <div class="player-name">Mac Meissner</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">61.5</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:61.5%;background:#3b7dd8"></div></div>
+          </td>
+          <td>105</td>
+          <td><span class="pos">+0.39</span></td>
+          <td><span class="pos">+0.14</span></td>
+          <td><span class="pos">+0.15</span></td>
+          <td>2.8</td>
+          <td>0.6</td>
+          <td>67.8</td>
+          <td>64.0</td>
+          <td>306</td>
+          <td>55.5</td>
+          <td><span style="color:#e07070;cursor:help" title="2025: T65">65</span></td>
+          <td class="recent-cell"><span style="color:#7bb3f5">T9</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">8/8</div>
+          </td>
+          <td class="summary-cell">Meissner stands out: averaging a top-11 finish over his last 1 events, poor track record at this course (avg finish 65).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:42%"></div></div><span class="radar-val">42</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:90%"></div></div><span class="radar-val">90</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:68%"></div></div><span class="radar-val">68</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:66%"></div></div><span class="radar-val">66</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:67%"></div></div><span class="radar-val">67</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:29%"></div></div><span class="radar-val">29</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:97%"></div></div><span class="radar-val">97</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:15%"></div></div><span class="radar-val">15</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="solid">
+          <td class="rank-cell">12</td>
+          <td class="name-cell">
+            <div class="player-name">Doug Ghim</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">61.5</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:61.5%;background:#3b7dd8"></div></div>
+          </td>
+          <td>186</td>
+          <td><span class="pos">+0.53</span></td>
+          <td><span class="pos">+0.18</span></td>
+          <td><span class="neg">-0.07</span></td>
+          <td>4.0</td>
+          <td><span class="na">--</span></td>
+          <td>66.8</td>
+          <td>64.3</td>
+          <td>302</td>
+          <td>59.4</td>
+          <td><span style="color:#f0a500;cursor:help" title="2025: T33  2023: T19">26</span></td>
+          <td class="recent-cell"><span class="muted">T19</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">7/8</div>
+          </td>
+          <td class="summary-cell">Ghim stands out: solid recent form (avg finish ~19 over last 1 events), positive strokes gained (+0.53) on tour this year, good course history (avg finish 26).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:33%"></div></div><span class="radar-val">33</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:76%"></div></div><span class="radar-val">76</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:69%"></div></div><span class="radar-val">69</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:70%"></div></div><span class="radar-val">70</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:57%"></div></div><span class="radar-val">57</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:56%"></div></div><span class="radar-val">56</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:67%"></div></div><span class="radar-val">67</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="watch">
+          <td class="rank-cell">13</td>
+          <td class="name-cell">
+            <div class="player-name">Ryo Hisatsune</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">60.5</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:60.5%;background:#f0a500"></div></div>
+          </td>
+          <td>60</td>
+          <td><span class="pos">+0.78</span></td>
+          <td><span class="pos">+0.27</span></td>
+          <td><span class="neg">-0.06</span></td>
+          <td>2.9</td>
+          <td>0.7</td>
+          <td>70.2</td>
+          <td>57.9</td>
+          <td>305</td>
+          <td>61.8</td>
+          <td><span style="color:#22a861;cursor:help" title="2024: T13">13</span></td>
+          <td class="recent-cell"><span class="muted">T35</span> <span class="muted">T45</span> <span class="muted">T65</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">8/8</div>
+          </td>
+          <td class="summary-cell">Hisatsune: positive strokes gained (+0.78) on tour this year, excellent course history (avg finish 13 here).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:60%"></div></div><span class="radar-val">60</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:34%"></div></div><span class="radar-val">34</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:75%"></div></div><span class="radar-val">75</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:76%"></div></div><span class="radar-val">76</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:58%"></div></div><span class="radar-val">58</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:31%"></div></div><span class="radar-val">31</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:87%"></div></div><span class="radar-val">87</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:84%"></div></div><span class="radar-val">84</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="watch">
+          <td class="rank-cell">14</td>
+          <td class="name-cell">
+            <div class="player-name">Pierceson Coody</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">59.8</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:59.8%;background:#f0a500"></div></div>
+          </td>
+          <td>57</td>
+          <td><span class="pos">+0.27</span></td>
+          <td><span class="pos">+0.10</span></td>
+          <td><span class="pos">+0.04</span></td>
+          <td>4.1</td>
+          <td><span class="na">--</span></td>
+          <td>68.0</td>
+          <td>60.9</td>
+          <td>316</td>
+          <td>55.4</td>
+          <td><span style="color:#f0a500;cursor:help" title="2025: T25">25</span></td>
+          <td class="recent-cell"><span class="muted">T24</span> <span class="muted">T38</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">7/8</div>
+          </td>
+          <td class="summary-cell">Coody: good course history (avg finish 25), big hitter (316 yds) suits this long course.</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:60%"></div></div><span class="radar-val">60</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:59%"></div></div><span class="radar-val">59</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:64%"></div></div><span class="radar-val">64</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:63%"></div></div><span class="radar-val">63</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:62%"></div></div><span class="radar-val">62</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:59%"></div></div><span class="radar-val">59</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:68%"></div></div><span class="radar-val">68</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="watch">
+          <td class="rank-cell">15</td>
+          <td class="name-cell">
+            <div class="player-name">Adrien Dumont de Chassart</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">59.3</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:59.3%;background:#f0a500"></div></div>
+          </td>
+          <td>156</td>
+          <td><span class="pos">+0.51</span></td>
+          <td><span class="pos">+0.18</span></td>
+          <td><span class="pos">+0.03</span></td>
+          <td>3.0</td>
+          <td>0.6</td>
+          <td>64.8</td>
+          <td>68.0</td>
+          <td>310</td>
+          <td>53.2</td>
+          <td><span style="color:#f0a500;cursor:help" title="2024: T30">30</span></td>
+          <td class="recent-cell"><span class="muted">T31</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">8/8</div>
+          </td>
+          <td class="summary-cell">Chassart: positive strokes gained (+0.51) on tour this year, good course history (avg finish 30).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:33%"></div></div><span class="radar-val">33</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:59%"></div></div><span class="radar-val">59</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:70%"></div></div><span class="radar-val">70</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:69%"></div></div><span class="radar-val">69</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:61%"></div></div><span class="radar-val">61</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:34%"></div></div><span class="radar-val">34</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:96%"></div></div><span class="radar-val">96</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:61%"></div></div><span class="radar-val">61</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="watch">
+          <td class="rank-cell">16</td>
+          <td class="name-cell">
+            <div class="player-name">Stephan Jaeger</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">59.0</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:59.0%;background:#f0a500"></div></div>
+          </td>
+          <td>93</td>
+          <td><span class="neg">-0.04</span></td>
+          <td><span class="neg">-0.02</span></td>
+          <td><span class="pos">+0.24</span></td>
+          <td>3.7</td>
+          <td><span class="na">--</span></td>
+          <td>64.0</td>
+          <td>64.0</td>
+          <td>313</td>
+          <td>48.5</td>
+          <td><span style="color:#f0a500;cursor:help" title="2025: T56  2024: T20  2023: T11  2022: T38">31</span></td>
+          <td class="recent-cell"><span class="muted">T18</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">7/8</div>
+          </td>
+          <td class="summary-cell">Jaeger: solid recent form (avg finish ~18 over last 1 events), big hitter (313 yds) suits this long course.</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:52%"></div></div><span class="radar-val">52</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:77%"></div></div><span class="radar-val">77</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:58%"></div></div><span class="radar-val">58</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:54%"></div></div><span class="radar-val">54</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:71%"></div></div><span class="radar-val">71</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:60%"></div></div><span class="radar-val">60</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="watch">
+          <td class="rank-cell">17</td>
+          <td class="name-cell">
+            <div class="player-name">Matti Schmid</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">58.5</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:58.5%;background:#f0a500"></div></div>
+          </td>
+          <td>65</td>
+          <td><span class="neg">-0.57</span></td>
+          <td><span class="neg">-0.20</span></td>
+          <td><span class="pos">+0.15</span></td>
+          <td>3.2</td>
+          <td><span class="na">--</span></td>
+          <td>65.1</td>
+          <td>57.2</td>
+          <td>309</td>
+          <td>51.6</td>
+          <td><span class="na">--</span></td>
+          <td class="recent-cell"><span class="pos">T4</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">6/8</div>
+          </td>
+          <td class="summary-cell">Schmid has upside (averaging a top-6 finish over his last 1 events) but losing strokes vs the field (-0.57) this season.</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:60%"></div></div><span class="radar-val">60</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:97%"></div></div><span class="radar-val">97</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:45%"></div></div><span class="radar-val">45</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:40%"></div></div><span class="radar-val">40</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:67%"></div></div><span class="radar-val">67</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:38%"></div></div><span class="radar-val">38</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="watch">
+          <td class="rank-cell">18</td>
+          <td class="name-cell">
+            <div class="player-name">Sam Ryder</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">58.4</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:58.4%;background:#f0a500"></div></div>
+          </td>
+          <td>214</td>
+          <td><span class="pos">+0.09</span></td>
+          <td><span class="pos">+0.03</span></td>
+          <td><span class="pos">+0.52</span></td>
+          <td>3.9</td>
+          <td><span class="na">--</span></td>
+          <td>66.1</td>
+          <td>59.6</td>
+          <td>299</td>
+          <td>55.0</td>
+          <td><span class="na">--</span></td>
+          <td class="recent-cell"><span class="muted">T17</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">6/8</div>
+          </td>
+          <td class="summary-cell">Ryder: solid recent form (avg finish ~17 over last 1 events), hot putter (+0.52 SG putting).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:32%"></div></div><span class="radar-val">32</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:78%"></div></div><span class="radar-val">78</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:65%"></div></div><span class="radar-val">65</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:58%"></div></div><span class="radar-val">58</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:82%"></div></div><span class="radar-val">82</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:54%"></div></div><span class="radar-val">54</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="watch">
+          <td class="rank-cell">19</td>
+          <td class="name-cell">
+            <div class="player-name">Davis Thompson</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">58.3</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:58.3%;background:#f0a500"></div></div>
+          </td>
+          <td>128</td>
+          <td><span class="pos">+0.82</span></td>
+          <td><span class="pos">+0.29</span></td>
+          <td><span class="neg">-0.59</span></td>
+          <td>3.9</td>
+          <td><span class="na">--</span></td>
+          <td>69.8</td>
+          <td>67.4</td>
+          <td>304</td>
+          <td>59.5</td>
+          <td><span style="color:#e07070;cursor:help" title="2023: T70">70</span></td>
+          <td class="recent-cell"><span style="color:#7bb3f5">T13</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">7/8</div>
+          </td>
+          <td class="summary-cell">Thompson has upside (averaging a top-15 finish over his last 1 events) but poor track record at this course (avg finish 70).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:42%"></div></div><span class="radar-val">42</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:84%"></div></div><span class="radar-val">84</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:70%"></div></div><span class="radar-val">70</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:78%"></div></div><span class="radar-val">78</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:34%"></div></div><span class="radar-val">34</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:54%"></div></div><span class="radar-val">54</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:9%"></div></div><span class="radar-val">9</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="watch">
+          <td class="rank-cell">20</td>
+          <td class="name-cell">
+            <div class="player-name">Mark Hubbard</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">57.9</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:57.9%;background:#f0a500"></div></div>
+          </td>
+          <td>116</td>
+          <td><span class="neg">-0.23</span></td>
+          <td><span class="neg">-0.08</span></td>
+          <td><span class="neg">-0.47</span></td>
+          <td>3.2</td>
+          <td><span class="na">--</span></td>
+          <td>64.3</td>
+          <td>58.2</td>
+          <td>295</td>
+          <td>57.0</td>
+          <td><span style="color:#f0a500;cursor:help" title="2025: T5  2024: T52  2022: T32  2021: T34">31</span></td>
+          <td class="recent-cell"><span class="pos">T2</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">7/8</div>
+          </td>
+          <td class="summary-cell">Hubbard has upside (averaging a top-4 finish over his last 1 events) but putting is a weakness (-0.47 SG putting).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:42%"></div></div><span class="radar-val">42</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:100%"></div></div><span class="radar-val">100</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:46%"></div></div><span class="radar-val">46</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:49%"></div></div><span class="radar-val">49</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:40%"></div></div><span class="radar-val">40</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:38%"></div></div><span class="radar-val">38</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:60%"></div></div><span class="radar-val">60</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="watch">
+          <td class="rank-cell">21</td>
+          <td class="name-cell">
+            <div class="player-name">Taylor Moore</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">57.7</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:57.7%;background:#f0a500"></div></div>
+          </td>
+          <td>152</td>
+          <td><span class="pos">+0.01</span></td>
+          <td><span class="pos">+0.00</span></td>
+          <td><span class="pos">+0.31</span></td>
+          <td>3.7</td>
+          <td><span class="na">--</span></td>
+          <td>62.0</td>
+          <td>65.3</td>
+          <td>312</td>
+          <td>51.6</td>
+          <td><span style="color:#f0a500;cursor:help" title="2022: T32">32</span></td>
+          <td class="recent-cell"><span class="muted">T17</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">7/8</div>
+          </td>
+          <td class="summary-cell">Moore: solid recent form (avg finish ~17 over last 1 events), big hitter (312 yds) suits this long course.</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:33%"></div></div><span class="radar-val">33</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:78%"></div></div><span class="radar-val">78</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:60%"></div></div><span class="radar-val">60</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:55%"></div></div><span class="radar-val">55</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:73%"></div></div><span class="radar-val">73</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:59%"></div></div><span class="radar-val">59</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="watch">
+          <td class="rank-cell">22</td>
+          <td class="name-cell">
+            <div class="player-name">Blades Brown</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">57.1</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:57.1%;background:#f0a500"></div></div>
+          </td>
+          <td>112</td>
+          <td><span class="na">--</span></td>
+          <td><span class="na">--</span></td>
+          <td><span class="na">--</span></td>
+          <td><span class="na">--</span></td>
+          <td><span class="na">--</span></td>
+          <td><span class="na">--</span></td>
+          <td><span class="na">--</span></td>
+          <td><span class="na">--</span></td>
+          <td><span class="na">--</span></td>
+          <td><span class="na">--</span></td>
+          <td class="recent-cell"><span style="color:#7bb3f5">T9</span></td>
+          <td>
+            <div class="dq-label" style="color:#c94040">0/8</div>
+          </td>
+          <td class="summary-cell">Brown: averaging a top-11 finish over his last 1 events.</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:42%"></div></div><span class="radar-val">42</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:90%"></div></div><span class="radar-val">90</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="watch">
+          <td class="rank-cell">23</td>
+          <td class="name-cell">
+            <div class="player-name">Taylor Pendrith</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">56.5</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:56.5%;background:#f0a500"></div></div>
+          </td>
+          <td>82</td>
+          <td><span class="pos">+0.27</span></td>
+          <td><span class="pos">+0.10</span></td>
+          <td><span class="neg">-0.47</span></td>
+          <td>3.3</td>
+          <td><span class="na">--</span></td>
+          <td>68.3</td>
+          <td>59.1</td>
+          <td>313</td>
+          <td>57.5</td>
+          <td><span style="color:#22a861;cursor:help" title="2024: T1">1</span></td>
+          <td class="recent-cell"><span class="muted">T44</span> <span class="muted">T37</span> <span class="muted">T38</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">7/8</div>
+          </td>
+          <td class="summary-cell">Pendrith has upside (excellent course history (avg finish 1 here)) but putting is a weakness (-0.47 SG putting).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:52%"></div></div><span class="radar-val">52</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:46%"></div></div><span class="radar-val">46</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:58%"></div></div><span class="radar-val">58</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:63%"></div></div><span class="radar-val">63</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:40%"></div></div><span class="radar-val">40</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:40%"></div></div><span class="radar-val">40</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:100%"></div></div><span class="radar-val">100</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="watch">
+          <td class="rank-cell">24</td>
+          <td class="name-cell">
+            <div class="player-name">Brooks Koepka</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">56.2</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:56.2%;background:#f0a500"></div></div>
+          </td>
+          <td>111</td>
+          <td><span class="pos">+1.23</span></td>
+          <td><span class="pos">+0.43</span></td>
+          <td><span class="neg">-0.47</span></td>
+          <td>2.7</td>
+          <td>0.9</td>
+          <td>70.5</td>
+          <td>54.7</td>
+          <td>313</td>
+          <td>55.2</td>
+          <td><span class="na">--</span></td>
+          <td class="recent-cell"><span class="muted">T55</span> <span style="color:#7bb3f5">T11</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">7/8</div>
+          </td>
+          <td class="summary-cell">Koepka has upside (positive strokes gained (+1.23) on tour this year) but putting is a weakness (-0.47 SG putting).</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:42%"></div></div><span class="radar-val">42</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:56%"></div></div><span class="radar-val">56</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:81%"></div></div><span class="radar-val">81</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:89%"></div></div><span class="radar-val">89</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:40%"></div></div><span class="radar-val">40</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:27%"></div></div><span class="radar-val">27</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:78%"></div></div><span class="radar-val">78</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div></div>
+          </td>
+        </tr>
+        <tr class="player-row" data-tier="watch">
+          <td class="rank-cell">25</td>
+          <td class="name-cell">
+            <div class="player-name">Haotong Li</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="score-cell">
+            <div class="score-num">56.1</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:56.1%;background:#f0a500"></div></div>
+          </td>
+          <td>80</td>
+          <td><span class="pos">+0.56</span></td>
+          <td><span class="pos">+0.20</span></td>
+          <td><span class="neg">-0.22</span></td>
+          <td>3.6</td>
+          <td><span class="na">--</span></td>
+          <td>70.2</td>
+          <td>60.6</td>
+          <td>310</td>
+          <td>58.8</td>
+          <td><span class="na">--</span></td>
+          <td class="recent-cell"><span class="muted">T35</span></td>
+          <td>
+            <div class="dq-label" style="color:#22a861">6/8</div>
+          </td>
+          <td class="summary-cell">Li: positive strokes gained (+0.56) on tour this year, big hitter (310 yds) suits this long course.</td>
+          <td class="detail-cell">
+            <div class="radar"><div class="radar-row"><span class="radar-label">Rank</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:52%"></div></div><span class="radar-val">52</span></div><div class="radar-row"><span class="radar-label">Form</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:53%"></div></div><span class="radar-val">53</span></div><div class="radar-row"><span class="radar-label">SG</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:68%"></div></div><span class="radar-val">68</span></div><div class="radar-row"><span class="radar-label">Approach</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:70%"></div></div><span class="radar-val">70</span></div><div class="radar-row"><span class="radar-label">Putting</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:51%"></div></div><span class="radar-val">51</span></div><div class="radar-row"><span class="radar-label">Birdie</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:47%"></div></div><span class="radar-val">47</span></div><div class="radar-row"><span class="radar-label">Bogey-</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div><div class="radar-row"><span class="radar-label">Course</span><div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:50%"></div></div><span class="radar-val">50</span></div></div>
+          </td>
+        </tr>
+  </tbody>
+</table>
+</div>
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#22a861"></div> STRONG — Bet with confidence</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3b7dd8"></div> SOLID — Most factors aligned</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f0a500"></div> WATCH — Some upside, smaller stakes</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#c94040"></div> FADE — Data says skip</div>
+  <div class="legend-item" style="margin-left:auto;color:#555;font-size:0.72rem;">
+    C.Hist = avg finish here over 5 yrs (hover for details) &nbsp;|&nbsp;
+    Recent = last 5 event finishes &nbsp;|&nbsp;
+    SG = Strokes Gained vs field &nbsp;|&nbsp;
+    Click column headers to sort
+  </div>
+</div>
+<script>
+  function filterTier(tier, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.player-row').forEach(row => {
+      const rt = row.dataset.tier;
+      if (tier === 'all')    { row.classList.remove('hidden'); return; }
+      if (tier === 'strong') { row.classList.toggle('hidden', rt !== 'strong'); return; }
+      if (tier === 'solid')  { row.classList.toggle('hidden', rt !== 'strong' && rt !== 'solid'); return; }
+      if (tier === 'watch')  { row.classList.toggle('hidden', rt === 'fade'); return; }
+      if (tier === 'fade')   { row.classList.toggle('hidden', rt !== 'fade'); return; }
+    });
+  }
+
+  let sortCol = 'composite', sortAsc = false;
+  const rows = Array.from(document.querySelectorAll('.player-row'));
+
+  document.querySelectorAll('thead th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (sortCol === col) { sortAsc = !sortAsc; }
+      else { sortCol = col; sortAsc = (col === 'owgr' || col === 'bogey_avg' || col === 'course_hist' || col === 'rank'); }
+      document.querySelectorAll('thead th').forEach(t => {
+        t.classList.remove('sorted');
+        const arr = t.querySelector('.sort-arrow');
+        if (arr) arr.innerHTML = '';
+      });
+      th.classList.add('sorted');
+      const arr = th.querySelector('.sort-arrow');
+      if (arr) arr.innerHTML = sortAsc ? '&#9650;' : '&#9660;';
+      const colIndex = Array.from(th.parentNode.children).indexOf(th);
+      const tbody = document.querySelector('tbody');
+      rows.sort((a, b) => {
+        const av = getCellVal(a, colIndex), bv = getCellVal(b, colIndex);
+        if (av === null && bv === null) return 0;
+        if (av === null) return 1;
+        if (bv === null) return -1;
+        return sortAsc ? av - bv : bv - av;
+      });
+      rows.forEach(r => tbody.appendChild(r));
+    });
+  });
+
+  function getCellVal(row, colIndex) {
+    const cell = row.cells[colIndex];
+    if (!cell) return null;
+    const txt = cell.innerText.replace(/[+%,T]/g,'').trim();
+    const n = parseFloat(txt);
+    return isNaN(n) ? null : n;
+  }
+</script>
+</body>
+</html>
