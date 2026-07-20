@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Golf Comparison &mdash; The Open</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green:  #22a861; --blue: #3b7dd8; --amber: #f0a500; --red: #c94040;
+    --bg:     #0e1117; --surface: #181d27; --card: #1e2433;
+    --border: rgba(255,255,255,0.07); --text: #e8eaf0; --muted: #7a8299;
+  }
+  body { font-family:'Barlow',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; font-size:14px; }
+  .header { background:var(--surface); border-bottom:1px solid var(--border); padding:2rem 2.5rem 1.5rem; }
+  .header-top { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:1rem; }
+  .event-name { font-family:'Barlow Condensed',sans-serif; font-size:2rem; font-weight:700; letter-spacing:0.02em; color:#fff; }
+  .subtitle { font-size:0.9rem; color:var(--muted); margin-top:0.25rem; }
+  .generated { font-size:0.8rem; color:var(--muted); text-align:right; }
+  .meta-bar { display:flex; flex-wrap:wrap; gap:1rem; margin-top:1.25rem; align-items:flex-start; }
+  .meta-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:0.6rem 1rem; font-size:0.82rem; }
+  .meta-card.hit-card { border-color:rgba(34,168,97,0.35); }
+  .meta-card.miss-card { border-color:rgba(201,64,64,0.35); }
+  .meta-label { color:var(--muted); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:2px; }
+  .meta-val { font-weight:600; color:var(--text); font-size:0.92rem; }
+  .meta-sub { font-size:0.72rem; color:var(--muted); margin-top:2px; }
+  .grade-badge { display:inline-flex; align-items:center; justify-content:center;
+    font-family:'Barlow Condensed',sans-serif; font-size:2.5rem; font-weight:700;
+    width:64px; height:64px; border-radius:12px;
+    background:rgba(255,255,255,0.06); border:2px solid currentColor; }
+  .missed-section { padding:1rem 2.5rem 0.75rem; border-bottom:1px solid var(--border); }
+  .missed-title { font-family:"Barlow Condensed",sans-serif; font-size:0.95rem; font-weight:700;
+    letter-spacing:0.08em; color:#f0a500; text-transform:uppercase; margin-bottom:0.6rem; }
+  .missed-pills { display:flex; flex-wrap:wrap; gap:0.5rem; }
+  .missed-pill { background:rgba(201,64,64,0.15); border:1px solid rgba(201,64,64,0.3);
+    border-radius:6px; padding:4px 12px; font-size:0.8rem; color:#e07070; }
+  .missed-pill b { color:#fff; }
+  .table-wrap { padding:1.5rem 2.5rem 3rem; overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; min-width:800px; }
+  thead th { font-family:'Barlow Condensed',sans-serif; font-size:0.72rem; font-weight:600;
+    letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);
+    padding:0.5rem 0.75rem; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; }
+  tbody tr { border-bottom:1px solid var(--border); transition:background 0.1s; }
+  tbody tr:hover { background:var(--card); }
+  tbody tr.row-hit { background:rgba(34,168,97,0.06); }
+  tbody tr.row-hit:hover { background:rgba(34,168,97,0.12); }
+  tbody tr.row-miss { background:rgba(201,64,64,0.05); }
+  tbody tr.row-miss:hover { background:rgba(201,64,64,0.1); }
+  td { padding:0.65rem 0.75rem; vertical-align:middle; white-space:nowrap; font-size:0.85rem; }
+  .pred-rank { font-family:'Barlow Condensed',sans-serif; font-size:1.1rem; font-weight:700; color:var(--muted); }
+  .name-cell { min-width:180px; }
+  .player-name { font-weight:600; font-size:0.92rem; color:#fff; margin-bottom:3px; }
+  .tier-badge { display:inline-block; font-size:0.65rem; font-weight:700; letter-spacing:0.08em;
+    padding:2px 7px; border-radius:3px; text-transform:uppercase; }
+  .tier-badge.strong { background:rgba(34,168,97,0.2);  color:#22a861; border:1px solid rgba(34,168,97,0.4); }
+  .tier-badge.solid  { background:rgba(59,125,216,0.2); color:#7bb3f5; border:1px solid rgba(59,125,216,0.4); }
+  .tier-badge.watch  { background:rgba(240,165,0,0.18); color:#f0a500; border:1px solid rgba(240,165,0,0.35); }
+  .tier-badge.fade   { background:rgba(201,64,64,0.15); color:#e07070; border:1px solid rgba(201,64,64,0.3); }
+  .composite-cell { font-family:'Barlow Condensed',sans-serif; font-size:1.1rem; font-weight:700; color:var(--muted); }
+  .actual-cell { font-weight:700; font-size:0.95rem; }
+  .total-cell { color:var(--muted); }
+  .delta-cell { font-family:'Barlow Condensed',sans-serif; font-size:1.1rem; font-weight:700; }
+  .rounds-cell { color:var(--muted); font-size:0.78rem; }
+  .rd-score { margin-right:8px; }
+  .winner { color:#f0d060; font-weight:700; }
+  .pos { color:#22a861; font-weight:600; }
+  .pos-soft { color:#7dd4a0; font-weight:600; }
+  .muted-pos { color:#a0b4c8; }
+  .neg { color:#e07070; } .neg-soft { color:#d4a0a0; }
+  .muted { color:var(--muted); } .na { color:var(--muted); }
+  .legend { display:flex; flex-wrap:wrap; gap:1.5rem; padding:1.25rem 2.5rem;
+    background:var(--surface); border-top:1px solid var(--border); font-size:0.78rem; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="event-name">The Open</div>
+      <div class="subtitle"> &nbsp;|&nbsp; Predictions vs Final Results</div>
+    </div>
+    <div class="generated">
+      <span class="grade-badge" style="color:#c94040">D</span><br>
+      <span style="font-size:0.72rem;color:var(--muted)">Model grade</span>
+    </div>
+  </div>
+  <div class="meta-bar">
+    <div class="meta-card">
+      <div class="meta-label">Winner</div>
+      <div class="meta-val">Chris Gotterup</div>
+      <div class="meta-sub">We had them at #7</div>
+    </div>
+    <div class="meta-card">
+      <div class="meta-label">Top-10 Hit Rate</div>
+      <div class="meta-val">4/10 (40%)</div>
+      <div class="meta-sub">of our top-10 picks finished top-10</div>
+    </div>
+    <div class="meta-card">
+      <div class="meta-label">Top-25 Hit Rate</div>
+      <div class="meta-val">15/25 (60%)</div>
+      <div class="meta-sub">of our top-25 picks finished top-25</div>
+    </div>
+    <div class="meta-card">
+      <div class="meta-label">STRONG picks (top-25)</div>
+      <div class="meta-val">1/2 (50%)</div>
+      <div class="meta-sub">STRONG tier finished in top-25</div>
+    </div>
+    <div class="meta-card"><div class="meta-label">Avg rank error</div><div class="meta-val">±27.5</div><div class="meta-sub">positions (our top-10 picks)</div></div>
+    <div class="meta-card hit-card"><div class="meta-label">Best Hit</div><div class="meta-val">Ryan Gerard</div><div class="meta-sub">Pred #22 → 2 (▲20)</div></div>
+    <div class="meta-card miss-card"><div class="meta-label">Biggest Miss</div><div class="meta-val">Matt Fitzpatrick</div><div class="meta-sub">Pred #2 → T108 (▼106)</div></div>
+  </div>
+</div>
+
+  <div class="missed-section">
+    <div class="missed-title">PLAYERS WE MISSED &nbsp;<span style="font-size:0.75rem;font-weight:400;color:var(--muted)">Finished top-10 but weren't in our top-25 picks</span></div>
+    <div class="missed-pills"><div class="missed-pill">Ryan Fox <b>1</b></div><div class="missed-pill">Patrick Rodgers <b>3</b></div><div class="missed-pill">Lee Hodges <b>T6</b></div><div class="missed-pill">Harry Hall <b>T6</b></div><div class="missed-pill">Daniel Berger <b>T6</b></div><div class="missed-pill">Taylor Pendrith <b>T6</b></div><div class="missed-pill">Davis Riley <b>T6</b></div><div class="missed-pill">Casey Jarvis <b>T6</b></div><div class="missed-pill">Lucas Herbert <b>T6</b></div><div class="missed-pill">Rasmus Neergaard-Petersen <b>T9</b></div></div>
+  </div>
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th>Pred</th>
+      <th>Player</th>
+      <th>Score</th>
+      <th>SG Tot</th>
+      <th>Actual</th>
+      <th>Total</th>
+      <th>Delta</th>
+      <th>Rounds</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+        <tr class="player-row">
+          <td class="pred-rank">#1</td>
+          <td class="name-cell">
+            <div class="player-name">Scottie Scheffler</div>
+            <span class="tier-badge strong">STRONG</span>
+          </td>
+          <td class="composite-cell">91.2</td>
+          <td><span class="pos">+2.25</span></td>
+          <td class="actual-cell"><span class="pos-soft">T4</span></td>
+          <td class="total-cell">-7</td>
+          <td class="delta-cell"><span class="neg-soft">▼3</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 68.0</span><span class="rd-score">R2: 68.0</span><span class="rd-score">R3: 70.0</span><span class="rd-score">R4: 67.0</span></td>
+        </tr>
+        <tr class="player-row row-miss">
+          <td class="pred-rank">#2</td>
+          <td class="name-cell">
+            <div class="player-name">Matt Fitzpatrick</div>
+            <span class="tier-badge strong">STRONG</span>
+          </td>
+          <td class="composite-cell">77.7</td>
+          <td><span class="pos">+1.54</span></td>
+          <td class="actual-cell"><span class="muted">T108</span></td>
+          <td class="total-cell">+4</td>
+          <td class="delta-cell"><span class="neg">▼106</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 72.0</span><span class="rd-score">R2: 72.0</span><span class="rd-score">R3: 0.0</span></td>
+        </tr>
+        <tr class="player-row row-miss">
+          <td class="pred-rank">#3</td>
+          <td class="name-cell">
+            <div class="player-name">Collin Morikawa</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">73.3</td>
+          <td><span class="pos">+1.29</span></td>
+          <td class="actual-cell"><span class="muted-pos">T18</span></td>
+          <td class="total-cell">-3</td>
+          <td class="delta-cell"><span class="neg">▼15</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 68.0</span><span class="rd-score">R2: 70.0</span><span class="rd-score">R3: 70.0</span><span class="rd-score">R4: 69.0</span></td>
+        </tr>
+        <tr class="player-row">
+          <td class="pred-rank">#4</td>
+          <td class="name-cell">
+            <div class="player-name">Tommy Fleetwood</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">71.9</td>
+          <td><span class="pos">+1.38</span></td>
+          <td class="actual-cell"><span class="pos-soft">T4</span></td>
+          <td class="total-cell">-7</td>
+          <td class="delta-cell"><span class="muted">=</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 69.0</span><span class="rd-score">R2: 67.0</span><span class="rd-score">R3: 69.0</span><span class="rd-score">R4: 68.0</span></td>
+        </tr>
+        <tr class="player-row row-miss">
+          <td class="pred-rank">#5</td>
+          <td class="name-cell">
+            <div class="player-name">Rory McIlroy</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">70.9</td>
+          <td><span class="pos">+1.73</span></td>
+          <td class="actual-cell"><span class="muted">T40</span></td>
+          <td class="total-cell">-1</td>
+          <td class="delta-cell"><span class="neg">▼35</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 72.0</span><span class="rd-score">R2: 67.0</span><span class="rd-score">R3: 69.0</span><span class="rd-score">R4: 71.0</span></td>
+        </tr>
+        <tr class="player-row">
+          <td class="pred-rank">#6</td>
+          <td class="name-cell">
+            <div class="player-name">Si Woo Kim</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">70.1</td>
+          <td><span class="pos">+1.25</span></td>
+          <td class="actual-cell"><span class="muted-pos">T11</span></td>
+          <td class="total-cell">-10</td>
+          <td class="delta-cell"><span class="neg-soft">▼5</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 69</span><span class="rd-score">R2: 66</span><span class="rd-score">R3: 68</span><span class="rd-score">R4: 67</span></td>
+        </tr>
+        <tr class="player-row row-hit">
+          <td class="pred-rank">#7</td>
+          <td class="name-cell">
+            <div class="player-name">Chris Gotterup</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">68.2</td>
+          <td><span class="pos">+1.18</span></td>
+          <td class="actual-cell"><span class="winner">🏆 Winner</span></td>
+          <td class="total-cell">-16</td>
+          <td class="delta-cell"><span class="pos">▲6</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 63</span><span class="rd-score">R2: 69</span><span class="rd-score">R3: 68</span><span class="rd-score">R4: 64</span></td>
+        </tr>
+        <tr class="player-row row-miss">
+          <td class="pred-rank">#8</td>
+          <td class="name-cell">
+            <div class="player-name">Wyndham Clark</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">67.3</td>
+          <td><span class="pos">+1.22</span></td>
+          <td class="actual-cell"><span class="muted">T98</span></td>
+          <td class="total-cell">+3</td>
+          <td class="delta-cell"><span class="neg">▼90</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 73.0</span><span class="rd-score">R2: 70.0</span><span class="rd-score">R3: 0.0</span></td>
+        </tr>
+        <tr class="player-row row-hit">
+          <td class="pred-rank">#9</td>
+          <td class="name-cell">
+            <div class="player-name">Cameron Young</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">67.2</td>
+          <td><span class="pos">+1.17</span></td>
+          <td class="actual-cell"><span class="pos">T2</span></td>
+          <td class="total-cell">-9</td>
+          <td class="delta-cell"><span class="pos">▲7</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 67.0</span><span class="rd-score">R2: 67.0</span><span class="rd-score">R3: 73.0</span><span class="rd-score">R4: 64.0</span></td>
+        </tr>
+        <tr class="player-row">
+          <td class="pred-rank">#10</td>
+          <td class="name-cell">
+            <div class="player-name">Xander Schauffele</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">65.8</td>
+          <td><span class="pos">+1.07</span></td>
+          <td class="actual-cell"><span class="muted-pos">T18</span></td>
+          <td class="total-cell">-3</td>
+          <td class="delta-cell"><span class="neg">▼8</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 71.0</span><span class="rd-score">R2: 69.0</span><span class="rd-score">R3: 66.0</span><span class="rd-score">R4: 71.0</span></td>
+        </tr>
+        <tr class="player-row">
+          <td class="pred-rank">#11</td>
+          <td class="name-cell">
+            <div class="player-name">Russell Henley</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">64.8</td>
+          <td><span class="pos">+0.91</span></td>
+          <td class="actual-cell"><span class="muted-pos">T19</span></td>
+          <td class="total-cell">-8</td>
+          <td class="delta-cell"><span class="neg">▼8</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 65</span><span class="rd-score">R2: 73</span><span class="rd-score">R3: 67</span><span class="rd-score">R4: 67</span></td>
+        </tr>
+        <tr class="player-row row-hit">
+          <td class="pred-rank">#12</td>
+          <td class="name-cell">
+            <div class="player-name">Jacob Bridgeman</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">63.9</td>
+          <td><span class="pos">+0.94</span></td>
+          <td class="actual-cell"><span class="pos-soft">T4</span></td>
+          <td class="total-cell">-12</td>
+          <td class="delta-cell"><span class="pos">▲8</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 69</span><span class="rd-score">R2: 68</span><span class="rd-score">R3: 67</span><span class="rd-score">R4: 64</span></td>
+        </tr>
+        <tr class="player-row">
+          <td class="pred-rank">#13</td>
+          <td class="name-cell">
+            <div class="player-name">Ludvig Åberg</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">63.6</td>
+          <td><span class="pos">+1.32</span></td>
+          <td class="actual-cell"><span class="pos-soft">T9</span></td>
+          <td class="total-cell">-5</td>
+          <td class="delta-cell"><span class="pos">▲4</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 71.0</span><span class="rd-score">R2: 66.0</span><span class="rd-score">R3: 67.0</span><span class="rd-score">R4: 71.0</span></td>
+        </tr>
+        <tr class="player-row row-miss">
+          <td class="pred-rank">#14</td>
+          <td class="name-cell">
+            <div class="player-name">Viktor Hovland</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">62.5</td>
+          <td><span class="pos">+0.72</span></td>
+          <td class="actual-cell"><span class="muted">T108</span></td>
+          <td class="total-cell">+4</td>
+          <td class="delta-cell"><span class="neg">▼94</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 70.0</span><span class="rd-score">R2: 74.0</span><span class="rd-score">R3: 0.0</span></td>
+        </tr>
+        <tr class="player-row row-miss">
+          <td class="pred-rank">#15</td>
+          <td class="name-cell">
+            <div class="player-name">Akshay Bhatia</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">62.2</td>
+          <td><span class="pos">+1.08</span></td>
+          <td class="actual-cell"><span class="muted">T108</span></td>
+          <td class="total-cell">+4</td>
+          <td class="delta-cell"><span class="neg">▼93</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 71.0</span><span class="rd-score">R2: 73.0</span><span class="rd-score">R3: 0.0</span></td>
+        </tr>
+        <tr class="player-row row-hit">
+          <td class="pred-rank">#16</td>
+          <td class="name-cell">
+            <div class="player-name">Sam Burns</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">62.0</td>
+          <td><span class="pos">+1.06</span></td>
+          <td class="actual-cell"><span class="pos">T3</span></td>
+          <td class="total-cell">-8</td>
+          <td class="delta-cell"><span class="pos">▲13</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 73.0</span><span class="rd-score">R2: 62.0</span><span class="rd-score">R3: 65.0</span><span class="rd-score">R4: 72.0</span></td>
+        </tr>
+        <tr class="player-row row-hit">
+          <td class="pred-rank">#17</td>
+          <td class="name-cell">
+            <div class="player-name">Robert MacIntyre</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">61.7</td>
+          <td><span class="pos">+0.84</span></td>
+          <td class="actual-cell"><span class="pos-soft">T4</span></td>
+          <td class="total-cell">-12</td>
+          <td class="delta-cell"><span class="pos">▲13</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 67</span><span class="rd-score">R2: 71</span><span class="rd-score">R3: 67</span><span class="rd-score">R4: 63</span></td>
+        </tr>
+        <tr class="player-row row-miss">
+          <td class="pred-rank">#18</td>
+          <td class="name-cell">
+            <div class="player-name">Justin Rose</div>
+            <span class="tier-badge solid">SOLID</span>
+          </td>
+          <td class="composite-cell">61.2</td>
+          <td><span class="pos">+0.54</span></td>
+          <td class="actual-cell"><span class="muted">T98</span></td>
+          <td class="total-cell">+3</td>
+          <td class="delta-cell"><span class="neg">▼80</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 75.0</span><span class="rd-score">R2: 68.0</span><span class="rd-score">R3: 0.0</span></td>
+        </tr>
+        <tr class="player-row row-miss">
+          <td class="pred-rank">#19</td>
+          <td class="name-cell">
+            <div class="player-name">Tom Kim</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="composite-cell">60.9</td>
+          <td><span class="pos">+0.52</span></td>
+          <td class="actual-cell"><span class="muted">T61</span></td>
+          <td class="total-cell">-2</td>
+          <td class="delta-cell"><span class="neg">▼42</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 69</span><span class="rd-score">R2: 69</span><span class="rd-score">R3: 72</span><span class="rd-score">R4: 68</span></td>
+        </tr>
+        <tr class="player-row">
+          <td class="pred-rank">#20</td>
+          <td class="name-cell">
+            <div class="player-name">Patrick Cantlay</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="composite-cell">59.6</td>
+          <td><span class="pos">+0.96</span></td>
+          <td class="actual-cell"><span class="muted">T28</span></td>
+          <td class="total-cell">-2</td>
+          <td class="delta-cell"><span class="neg">▼8</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 71.0</span><span class="rd-score">R2: 68.0</span><span class="rd-score">R3: 71.0</span><span class="rd-score">R4: 68.0</span></td>
+        </tr>
+        <tr class="player-row">
+          <td class="pred-rank">#21</td>
+          <td class="name-cell">
+            <div class="player-name">Ben Griffin</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="composite-cell">59.0</td>
+          <td><span class="pos">+0.70</span></td>
+          <td class="actual-cell"><span class="muted-pos">T19</span></td>
+          <td class="total-cell">-8</td>
+          <td class="delta-cell"><span class="pos-soft">▲2</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 63</span><span class="rd-score">R2: 71</span><span class="rd-score">R3: 71</span><span class="rd-score">R4: 67</span></td>
+        </tr>
+        <tr class="player-row row-hit">
+          <td class="pred-rank">#22</td>
+          <td class="name-cell">
+            <div class="player-name">Ryan Gerard</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="composite-cell">58.7</td>
+          <td><span class="pos">+0.74</span></td>
+          <td class="actual-cell"><span class="pos">2</span></td>
+          <td class="total-cell">-14</td>
+          <td class="delta-cell"><span class="pos">▲20</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 69</span><span class="rd-score">R2: 64</span><span class="rd-score">R3: 68</span><span class="rd-score">R4: 65</span></td>
+        </tr>
+        <tr class="player-row row-hit">
+          <td class="pred-rank">#23</td>
+          <td class="name-cell">
+            <div class="player-name">Jake Knapp</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="composite-cell">57.8</td>
+          <td><span class="pos">+1.02</span></td>
+          <td class="actual-cell"><span class="muted-pos">T11</span></td>
+          <td class="total-cell">-10</td>
+          <td class="delta-cell"><span class="pos">▲12</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 66</span><span class="rd-score">R2: 68</span><span class="rd-score">R3: 70</span><span class="rd-score">R4: 66</span></td>
+        </tr>
+        <tr class="player-row">
+          <td class="pred-rank">#24</td>
+          <td class="name-cell">
+            <div class="player-name">Shane Lowry</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="composite-cell">57.8</td>
+          <td><span class="pos">+0.76</span></td>
+          <td class="actual-cell"><span class="muted">T28</span></td>
+          <td class="total-cell">-2</td>
+          <td class="delta-cell"><span class="neg-soft">▼4</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 69.0</span><span class="rd-score">R2: 68.0</span><span class="rd-score">R3: 69.0</span><span class="rd-score">R4: 72.0</span></td>
+        </tr>
+        <tr class="player-row row-miss">
+          <td class="pred-rank">#25</td>
+          <td class="name-cell">
+            <div class="player-name">Tyrrell Hatton</div>
+            <span class="tier-badge watch">WATCH</span>
+          </td>
+          <td class="composite-cell">56.8</td>
+          <td><span class="na">--</span></td>
+          <td class="actual-cell"><span class="muted">T69</span></td>
+          <td class="total-cell">+5</td>
+          <td class="delta-cell"><span class="neg">▼44</span></td>
+          <td class="rounds-cell"><span class="rd-score">R1: 69.0</span><span class="rd-score">R2: 68.0</span><span class="rd-score">R3: 74.0</span><span class="rd-score">R4: 74.0</span></td>
+        </tr>
+  </tbody>
+</table>
+</div>
+<div class="legend">
+  <span>▲ = finished better than predicted rank &nbsp;|&nbsp; ▼ = worse than predicted</span>
+  <span>Delta = actual finish − predicted rank (negative is good)</span>
+  <span>Score = composite 0-100 from predictor model</span>
+  <span style="margin-left:auto;color:#555;font-size:0.72rem;">Generated July 20, 2026  06:04 from golf_picks_20260714.json</span>
+</div>
+</body>
+</html>
